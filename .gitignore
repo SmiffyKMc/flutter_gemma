@@ -1,2 +1,5 @@
 .dart_tool/
 .DS_Store
+# For codex agent use:
+flutter.tar.xz
+flutter/
