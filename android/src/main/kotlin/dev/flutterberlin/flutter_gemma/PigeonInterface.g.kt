@@ -61,12 +61,35 @@ enum class PreferredBackend(val raw: Int) {
     }
   }
 }
+
+/** Generated class from Pigeon that represents data sent in messages. */
+data class AudioEmbedding (
+  val embedding: List<Double?>
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): AudioEmbedding {
+      val embedding = pigeonVar_list[0] as List<Double?>
+      return AudioEmbedding(embedding)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      embedding,
+    )
+  }
+}
 private open class PigeonInterfacePigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
       129.toByte() -> {
         return (readValue(buffer) as Long?)?.let {
           PreferredBackend.ofRaw(it.toInt())
+        }
+      }
+      130.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          AudioEmbedding.fromList(it)
         }
       }
       else -> super.readValueOfType(type, buffer)
@@ -77,6 +100,10 @@ private open class PigeonInterfacePigeonCodec : StandardMessageCodec() {
       is PreferredBackend -> {
         stream.write(129)
         writeValue(stream, value.raw)
+      }
+      is AudioEmbedding -> {
+        stream.write(130)
+        writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
     }
@@ -95,6 +122,9 @@ interface PlatformService {
   fun addImage(imageBytes: ByteArray, callback: (Result<Unit>) -> Unit)
   fun generateResponse(callback: (Result<String>) -> Unit)
   fun generateResponseAsync(callback: (Result<Unit>) -> Unit)
+  fun startAudioStream(callback: (Result<Unit>) -> Unit)
+  fun stopAudioStream(callback: (Result<Unit>) -> Unit)
+  fun sendAudioEmbedding(embedding: AudioEmbedding, callback: (Result<Unit>) -> Unit)
 
   companion object {
     /** The codec used by PlatformService. */
@@ -267,6 +297,59 @@ interface PlatformService {
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             api.generateResponseAsync{ result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(wrapError(error))
+              } else {
+                reply.reply(wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.startAudioStream$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.startAudioStream{ result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(wrapError(error))
+              } else {
+                reply.reply(wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.stopAudioStream$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.stopAudioStream{ result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(wrapError(error))
+              } else {
+                reply.reply(wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.sendAudioEmbedding$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val embeddingArg = args[0] as AudioEmbedding
+            api.sendAudioEmbedding(embeddingArg) { result: Result<Unit> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(wrapError(error))

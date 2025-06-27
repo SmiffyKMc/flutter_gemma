@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import AVFoundation
 
 @available(iOS 13.0, *)
 public class FlutterGemmaPlugin: NSObject, FlutterPlugin {
@@ -17,6 +18,8 @@ class PlatformServiceImpl : NSObject, PlatformService, FlutterStreamHandler {
     private var eventSink: FlutterEventSink?
     private var model: InferenceModel?
     private var session: InferenceSession?
+    private var audioEmbedder: Any?
+    private var audioEngine: AVAudioEngine?
 
     func createModel(
         maxTokens: Int64,
@@ -34,6 +37,10 @@ class PlatformServiceImpl : NSObject, PlatformService, FlutterStreamHandler {
                     supportedLoraRanks: loraRanks?.map(Int.init),
                     maxNumImages: Int(maxNumImages ?? 0)
                 )
+                if self.audioEmbedder == nil {
+                    self.audioEmbedder = NSObject()
+                    self.audioEngine = AVAudioEngine()
+                }
                 DispatchQueue.main.async {
                     completion(.success(()))
                 }
@@ -211,6 +218,29 @@ class PlatformServiceImpl : NSObject, PlatformService, FlutterStreamHandler {
                     completion(.failure(error))
                 }
             }
+        }
+    }
+
+    func startAudioStream(completion: @escaping (Result<Void, any Error>) -> Void) {
+        do {
+            try audioEngine?.start()
+            completion(.success(()))
+        } catch {
+            completion(.failure(error))
+        }
+    }
+
+    func stopAudioStream(completion: @escaping (Result<Void, any Error>) -> Void) {
+        audioEngine?.stop()
+        completion(.success(()))
+    }
+
+    func sendAudioEmbedding(embedding: AudioEmbedding, completion: @escaping (Result<Void, any Error>) -> Void) {
+        do {
+            try session?.addAudioEmbedding(embedding.embedding.compactMap { $0 })
+            completion(.success(()))
+        } catch {
+            completion(.failure(error))
         }
     }
 
