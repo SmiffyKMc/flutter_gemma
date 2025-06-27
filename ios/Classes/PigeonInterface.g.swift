@@ -74,6 +74,26 @@ enum PreferredBackend: Int {
   case tpu = 6
 }
 
+/// Generated class from Pigeon that represents data sent in messages.
+struct AudioEmbedding {
+  var embedding: [Double?]
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> AudioEmbedding? {
+    let embedding = pigeonVar_list[0] as! [Double?]
+
+    return AudioEmbedding(
+      embedding: embedding
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      embedding
+    ]
+  }
+}
+
 private class PigeonInterfacePigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -83,6 +103,8 @@ private class PigeonInterfacePigeonCodecReader: FlutterStandardReader {
         return PreferredBackend(rawValue: enumResultAsInt)
       }
       return nil
+    case 130:
+      return AudioEmbedding.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -94,6 +116,9 @@ private class PigeonInterfacePigeonCodecWriter: FlutterStandardWriter {
     if let value = value as? PreferredBackend {
       super.writeByte(129)
       super.writeValue(value.rawValue)
+    } else if let value = value as? AudioEmbedding {
+      super.writeByte(130)
+      super.writeValue(value.toList())
     } else {
       super.writeValue(value)
     }
@@ -126,6 +151,9 @@ protocol PlatformService {
   func addImage(imageBytes: FlutterStandardTypedData, completion: @escaping (Result<Void, Error>) -> Void)
   func generateResponse(completion: @escaping (Result<String, Error>) -> Void)
   func generateResponseAsync(completion: @escaping (Result<Void, Error>) -> Void)
+  func startAudioStream(completion: @escaping (Result<Void, Error>) -> Void)
+  func stopAudioStream(completion: @escaping (Result<Void, Error>) -> Void)
+  func sendAudioEmbedding(embedding: AudioEmbedding, completion: @escaping (Result<Void, Error>) -> Void)
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -287,6 +315,53 @@ class PlatformServiceSetup {
       }
     } else {
       generateResponseAsyncChannel.setMessageHandler(nil)
+    }
+    let startAudioStreamChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.flutter_gemma.PlatformService.startAudioStream\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      startAudioStreamChannel.setMessageHandler { _, reply in
+        api.startAudioStream { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      startAudioStreamChannel.setMessageHandler(nil)
+    }
+    let stopAudioStreamChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.flutter_gemma.PlatformService.stopAudioStream\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      stopAudioStreamChannel.setMessageHandler { _, reply in
+        api.stopAudioStream { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      stopAudioStreamChannel.setMessageHandler(nil)
+    }
+    let sendAudioEmbeddingChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.flutter_gemma.PlatformService.sendAudioEmbedding\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      sendAudioEmbeddingChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let embeddingArg = args[0] as! AudioEmbedding
+        api.sendAudioEmbedding(embedding: embeddingArg) { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      sendAudioEmbeddingChannel.setMessageHandler(nil)
     }
   }
 }

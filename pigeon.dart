@@ -11,6 +11,12 @@ enum PreferredBackend {
   tpu,
 }
 
+class AudioEmbedding {
+  List<double?> embedding;
+
+  AudioEmbedding({required this.embedding});
+}
+
 @ConfigurePigeon(PigeonOptions(
   dartOut: 'lib/pigeon.g.dart',
   kotlinOut: 'android/src/main/kotlin/dev/flutterberlin/flutter_gemma/PigeonInterface.g.kt',
@@ -63,4 +69,13 @@ abstract class PlatformService {
 
   @async
   void generateResponseAsync();
+
+  @async
+  void startAudioStream();
+
+  @async
+  void stopAudioStream();
+
+  @async
+  void sendAudioEmbedding(AudioEmbedding embedding);
 }

@@ -23,6 +23,8 @@ dependencies:
   path_provider: ^2.1.4
   plugin_platform_interface: ^2.0.2
   shared_preferences: ^2.5.2
+  flutter_mediapipe: ^0.0.1
+  mediapipe_genai: ^0.10.24
 
 dev_dependencies:
   flutter_test:
@@ -55,6 +57,9 @@ flutter:
       web:
         pluginClass: FlutterGemmaWeb
         fileName: web/flutter_gemma_web.dart
+
+  assets:
+    - assets/audio_embedder.tflite
 
   # To add assets to your plugin package, add an assets section, like this:
   # assets:

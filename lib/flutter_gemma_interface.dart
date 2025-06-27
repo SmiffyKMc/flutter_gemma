@@ -44,6 +44,7 @@ abstract class FlutterGemmaPlugin extends PlatformInterface {
     List<int>? loraRanks,
     int? maxNumImages, // Добавляем поддержку изображений
     bool supportImage = false, // Добавляем флаг поддержки изображений
+    bool supportAudio = false,
   });
 }
 

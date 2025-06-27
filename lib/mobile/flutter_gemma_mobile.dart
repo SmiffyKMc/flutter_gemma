@@ -45,6 +45,7 @@ class FlutterGemma extends FlutterGemmaPlugin {
     // Добавляем поддержку изображений
     int? maxNumImages,
     bool supportImage = false,
+    bool supportAudio = false,
   }) async {
     if (_initCompleter case Completer<InferenceModel> completer) {
       return completer.future;
@@ -89,6 +90,7 @@ class FlutterGemma extends FlutterGemmaPlugin {
         supportedLoraRanks: loraRanks ?? supportedLoraRanks,
         supportImage: supportImage,
         maxNumImages: maxNumImages,
+        supportAudio: supportAudio,
         onClose: () {
           _initializedModel = null;
           _initCompleter = null;

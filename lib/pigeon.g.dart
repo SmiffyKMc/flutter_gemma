@@ -25,6 +25,27 @@ enum PreferredBackend {
   tpu,
 }
 
+class AudioEmbedding {
+  AudioEmbedding({
+    required this.embedding,
+  });
+
+  List<double?> embedding;
+
+  Object encode() {
+    return <Object?>[
+      embedding,
+    ];
+  }
+
+  static AudioEmbedding decode(Object result) {
+    result as List<Object?>;
+    return AudioEmbedding(
+      embedding: (result[0] as List<Object?>?)!.cast<double?>(),
+    );
+  }
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -36,6 +57,9 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is PreferredBackend) {
       buffer.putUint8(129);
       writeValue(buffer, value.index);
+    }    else if (value is AudioEmbedding) {
+      buffer.putUint8(130);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -47,6 +71,8 @@ class _PigeonCodec extends StandardMessageCodec {
       case 129: 
         final int? value = readValue(buffer) as int?;
         return value == null ? null : PreferredBackend.values[value];
+      case 130: 
+        return AudioEmbedding.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -261,6 +287,72 @@ class PlatformService {
     );
     final List<Object?>? pigeonVar_replyList =
         await pigeonVar_channel.send(null) as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else {
+      return;
+    }
+  }
+
+  Future<void> startAudioStream() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.flutter_gemma.PlatformService.startAudioStream$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_channel.send(null) as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else {
+      return;
+    }
+  }
+
+  Future<void> stopAudioStream() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.flutter_gemma.PlatformService.stopAudioStream$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_channel.send(null) as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else {
+      return;
+    }
+  }
+
+  Future<void> sendAudioEmbedding(AudioEmbedding embedding) async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.flutter_gemma.PlatformService.sendAudioEmbedding$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_channel.send(<Object?>[embedding]) as List<Object?>?;
     if (pigeonVar_replyList == null) {
       throw _createConnectionError(pigeonVar_channelName);
     } else if (pigeonVar_replyList.length > 1) {

@@ -33,6 +33,7 @@ class FlutterGemmaWeb extends FlutterGemmaPlugin {
     List<int>? loraRanks,
     int? maxNumImages, // Добавляем поддержку изображений (заглушка)
     bool supportImage = false, // Добавляем флаг поддержки изображений (заглушка)
+    bool supportAudio = false,
   }) {
     // TODO: Implement multimodal support for web
     if (supportImage || maxNumImages != null) {
@@ -48,6 +49,7 @@ class FlutterGemmaWeb extends FlutterGemmaPlugin {
       modelManager: modelManager,
       supportImage: supportImage, // Передаем флаг
       maxNumImages: maxNumImages, // Передаем количество изображений
+      supportAudio: supportAudio,
       onClose: () {
         _initializedModel = null;
       },
@@ -66,6 +68,7 @@ class WebInferenceModel extends InferenceModel {
   final WebModelManager modelManager;
   final bool supportImage; // Добавляем поддержку изображений
   final int? maxNumImages; // Добавляем количество изображений
+  final bool supportAudio;
   Completer<InferenceModelSession>? _initCompleter;
   @override
   InferenceModelSession? session;
@@ -78,6 +81,7 @@ class WebInferenceModel extends InferenceModel {
     required this.modelManager,
     this.supportImage = false, // Добавляем в конструктор
     this.maxNumImages, // Добавляем в конструктор
+    this.supportAudio = false,
   });
 
   @override

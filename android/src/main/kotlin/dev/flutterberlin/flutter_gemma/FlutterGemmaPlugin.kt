@@ -33,6 +33,8 @@ private class PlatformServiceImpl(
   private var eventSink: EventChannel.EventSink? = null
   private var inferenceModel: InferenceModel? = null
   private var session: InferenceModelSession? = null
+  private var audioEmbedder: Any? = null
+  private var audioRecord: android.media.AudioRecord? = null
 
   override fun createModel(
     maxTokens: Long,
@@ -57,6 +59,27 @@ private class PlatformServiceImpl(
         if (config != inferenceModel?.config) {
           inferenceModel?.close()
           inferenceModel = InferenceModel(context, config)
+          if (audioEmbedder == null) {
+            try {
+              audioEmbedder = Any() // placeholder for AudioEmbedder initialization
+              val rate = 16000
+              val buffer = android.media.AudioRecord.getMinBufferSize(
+                rate,
+                android.media.AudioFormat.CHANNEL_IN_MONO,
+                android.media.AudioFormat.ENCODING_PCM_16BIT
+              )
+              audioRecord = android.media.AudioRecord(
+                android.media.MediaRecorder.AudioSource.MIC,
+                rate,
+                android.media.AudioFormat.CHANNEL_IN_MONO,
+                android.media.AudioFormat.ENCODING_PCM_16BIT,
+                buffer
+              )
+            } catch (_: Exception) {
+              audioEmbedder = null
+              audioRecord = null
+            }
+          }
         }
         callback(Result.success(Unit))
       } catch (e: Exception) {
@@ -162,6 +185,35 @@ private class PlatformServiceImpl(
     scope.launch {
       try {
         session?.generateResponseAsync() ?: throw IllegalStateException("Session not created")
+        callback(Result.success(Unit))
+      } catch (e: Exception) {
+        callback(Result.failure(e))
+      }
+    }
+  }
+
+  override fun startAudioStream(callback: (Result<Unit>) -> Unit) {
+    try {
+      audioRecord?.startRecording()
+      callback(Result.success(Unit))
+    } catch (e: Exception) {
+      callback(Result.failure(e))
+    }
+  }
+
+  override fun stopAudioStream(callback: (Result<Unit>) -> Unit) {
+    try {
+      audioRecord?.stop()
+      callback(Result.success(Unit))
+    } catch (e: Exception) {
+      callback(Result.failure(e))
+    }
+  }
+
+  override fun sendAudioEmbedding(embedding: AudioEmbedding, callback: (Result<Unit>) -> Unit) {
+    scope.launch {
+      try {
+        session?.addAudioEmbedding(embedding.embedding.filterNotNull()) ?: throw IllegalStateException("Session not created")
         callback(Result.success(Unit))
       } catch (e: Exception) {
         callback(Result.failure(e))

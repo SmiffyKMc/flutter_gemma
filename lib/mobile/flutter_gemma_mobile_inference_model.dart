@@ -1,5 +1,7 @@
 part of 'flutter_gemma_mobile.dart';
 
+import '../gemma_audio_manager.dart';
+
 class MobileInferenceModel extends InferenceModel {
   MobileInferenceModel({
     required this.maxTokens,
@@ -11,6 +13,7 @@ class MobileInferenceModel extends InferenceModel {
     // Добавляем поддержку изображений
     this.supportImage = false,
     this.maxNumImages,
+    this.supportAudio = false,
   });
 
   final ModelType modelType;
@@ -23,6 +26,8 @@ class MobileInferenceModel extends InferenceModel {
   // Добавляем поля для изображений
   final bool supportImage;
   final int? maxNumImages;
+  final bool supportAudio;
+  GemmaAudioManager? audioManager;
 
   bool _isClosed = false;
   MobileInferenceModelSession? _session;
@@ -70,11 +75,15 @@ class MobileInferenceModel extends InferenceModel {
       final session = _session = MobileInferenceModelSession(
         modelType: modelType,
         supportImage: supportImage,
+        supportAudio: supportAudio,
         onClose: () {
           _session = null;
           _createCompleter = null;
         },
       );
+      if (supportAudio) {
+        session.audioManager = GemmaAudioManager();
+      }
       return session;
     } catch (e, st) {
       completer.completeError(e, st);
@@ -96,6 +105,8 @@ class MobileInferenceModelSession extends InferenceModelSession {
   final VoidCallback onClose;
   // Добавляем поддержку изображений
   final bool supportImage;
+  final bool supportAudio;
+  GemmaAudioManager? audioManager;
   bool _isClosed = false;
 
   Completer<void>? _responseCompleter;
@@ -105,6 +116,7 @@ class MobileInferenceModelSession extends InferenceModelSession {
     required this.onClose,
     required this.modelType,
     this.supportImage = false,
+    this.supportAudio = false,
   });
 
   void _assertNotClosed() {

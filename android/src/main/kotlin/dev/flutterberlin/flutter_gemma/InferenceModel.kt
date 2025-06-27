@@ -145,6 +145,12 @@ class InferenceModelSession(
         }
     }
 
+    fun addAudioEmbedding(embedding: List<Double>) {
+        // Placeholder call to underlying API
+        session.javaClass.getMethod("addAudioEmbedding", FloatArray::class.java)
+            .invoke(session, embedding.map { it.toFloat() }.toFloatArray())
+    }
+
     fun close() {
         session.close()
     }

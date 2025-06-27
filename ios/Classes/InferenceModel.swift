@@ -127,6 +127,15 @@ final class InferenceSession {
         return session.generateResponseAsync()
     }
 
+    func addAudioEmbedding(_ embedding: [Double]) throws {
+        let method = session.perform(Selector("addAudioEmbedding:"))
+        typealias Func = @convention(c) (AnyObject, Selector, [Float]) -> Void
+        if let imp = method?.method(for: Selector("addAudioEmbedding:")) {
+            let f = unsafeBitCast(imp, to: Func.self)
+            f(session, Selector("addAudioEmbedding:"), embedding.map(Float.init))
+        }
+    }
+
     // Access to session metrics
     var metrics: LlmInference.Session.Metrics {
         return session.metrics
