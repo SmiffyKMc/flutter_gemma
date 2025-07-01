@@ -45,6 +45,8 @@ class FlutterGemma extends FlutterGemmaPlugin {
     // Добавляем поддержку изображений
     int? maxNumImages,
     bool supportImage = false,
+    bool supportAudio = false,
+    int maxAudioLength = 30,
   }) async {
     if (_initCompleter case Completer<InferenceModel> completer) {
       return completer.future;
@@ -79,6 +81,8 @@ class FlutterGemma extends FlutterGemmaPlugin {
         preferredBackend: preferredBackend,
         // Передаем параметр для изображений
         maxNumImages: supportImage ? (maxNumImages ?? 1) : null,
+        supportAudio: supportAudio,
+        maxAudioLength: maxAudioLength,
       );
 
       final model = _initializedModel = MobileInferenceModel(
@@ -88,7 +92,9 @@ class FlutterGemma extends FlutterGemmaPlugin {
         preferredBackend: preferredBackend,
         supportedLoraRanks: loraRanks ?? supportedLoraRanks,
         supportImage: supportImage,
+        supportAudio: supportAudio,
         maxNumImages: maxNumImages,
+        maxAudioLength: maxAudioLength,
         onClose: () {
           _initializedModel = null;
           _initCompleter = null;

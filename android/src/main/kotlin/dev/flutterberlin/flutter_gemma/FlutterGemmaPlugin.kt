@@ -40,6 +40,8 @@ private class PlatformServiceImpl(
     loraRanks: List<Long>?,
     preferredBackend: PreferredBackend?,
     maxNumImages: Long?,
+    supportAudio: Boolean?,
+    maxAudioLength: Long?,
     callback: (Result<Unit>) -> Unit
   ) {
     scope.launch {
@@ -52,7 +54,9 @@ private class PlatformServiceImpl(
           maxTokens.toInt(),
           loraRanks?.map { it.toInt() },
           backendEnum,
-          maxNumImages?.toInt()
+          maxNumImages?.toInt(),
+          supportAudio ?: false,
+          maxAudioLength?.toInt() ?: 30
         )
         if (config != inferenceModel?.config) {
           inferenceModel?.close()
@@ -82,6 +86,7 @@ private class PlatformServiceImpl(
     topP: Double?,
     loraPath: String?,
     enableVisionModality: Boolean?,
+    enableAudioModality: Boolean?,
     callback: (Result<Unit>) -> Unit
   ) {
     scope.launch {
@@ -93,7 +98,8 @@ private class PlatformServiceImpl(
           topK.toInt(),
           topP?.toFloat(),
           loraPath,
-          enableVisionModality
+          enableVisionModality,
+          enableAudioModality
         )
         session?.close()
         session = model.createSession(config)
@@ -140,6 +146,17 @@ private class PlatformServiceImpl(
     scope.launch {
       try {
         session?.addImage(imageBytes) ?: throw IllegalStateException("Session not created")
+        callback(Result.success(Unit))
+      } catch (e: Exception) {
+        callback(Result.failure(e))
+      }
+    }
+  }
+
+  override fun addAudio(audioBytes: ByteArray, callback: (Result<Unit>) -> Unit) {
+    scope.launch {
+      try {
+        session?.addAudio(audioBytes) ?: throw IllegalStateException("Session not created")
         callback(Result.success(Unit))
       } catch (e: Exception) {
         callback(Result.failure(e))

@@ -26,6 +26,8 @@ data class InferenceModelConfig(
     val supportedLoraRanks: List<Int>?,
     val preferredBackend: PreferredBackendEnum?,
     val maxNumImages: Int?,
+    val supportAudio: Boolean = false,
+    val maxAudioLength: Int = 30,
 )
 
 data class InferenceSessionConfig(
@@ -35,6 +37,7 @@ data class InferenceSessionConfig(
     val topP: Float?,
     val loraPath: String?,
     val enableVisionModality: Boolean?,
+    val enableAudioModality: Boolean?,
 )
 
 // Updated InferenceModel
@@ -76,6 +79,8 @@ class InferenceModel(
                         setPreferredBackend(backendEnum)
                     }
                     config.maxNumImages?.let { setMaxNumImages(it) }
+                    // Note: Audio support would be configured here when MediaPipe supports it
+                    // For now, we store the configuration for future use
                 }
             val options = optionsBuilder.build()
             llmInference = LlmInference.createFromOptions(context, options)
@@ -111,13 +116,18 @@ class InferenceModelSession(
             .apply {
                 config.topP?.let { setTopP(it) }
                 config.loraPath?.let { setLoraPath(it) }
+                
+                // Configure vision and audio modalities
+                val graphOptionsBuilder = GraphOptions.builder()
                 config.enableVisionModality?.let { enableVision ->
-                    setGraphOptions(
-                        GraphOptions.builder()
-                            .setEnableVisionModality(enableVision)
-                            .build()
-                    )
+                    graphOptionsBuilder.setEnableVisionModality(enableVision)
                 }
+                config.enableAudioModality?.let { enableAudio ->
+                    // Note: Audio modality support would be added here when MediaPipe supports it
+                    // For now, we store the configuration for future implementation
+                    // graphOptionsBuilder.setEnableAudioModality(enableAudio)
+                }
+                setGraphOptions(graphOptionsBuilder.build())
             }
 
         val sessionOptions = sessionOptionsBuilder.build()
@@ -133,6 +143,48 @@ class InferenceModelSession(
             ?: throw IllegalArgumentException("Failed to decode image bytes")
         val mpImage = BitmapImageBuilder(bitmap).build()
         session.addImage(mpImage)
+    }
+
+    fun addAudio(audioBytes: ByteArray) {
+        // TODO: Implement audio preprocessing and USM encoding
+        // This is a placeholder for the audio processing pipeline
+        
+        if (!config.enableAudioModality!!) {
+            throw IllegalArgumentException("Audio modality is not enabled for this session")
+        }
+        
+        try {
+            // Step 1: Validate audio format and convert to 16kHz mono float32
+            val processedAudio = preprocessAudio(audioBytes)
+            
+            // Step 2: Convert audio to USM tokens (placeholder)
+            // In actual implementation, this would use MediaPipe's USM encoder
+            // val audioTokens = encodeAudioToTokens(processedAudio)
+            
+            // Step 3: Add audio tokens to session (placeholder)
+            // session.addAudio(audioTokens) // This method doesn't exist yet in MediaPipe
+            
+            // For now, we'll throw an exception indicating this is not yet implemented
+            throw UnsupportedOperationException(
+                "Audio input is not yet implemented in MediaPipe Tasks. " +
+                "This requires MediaPipe to support audio input for LLM inference."
+            )
+            
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to process audio input: ${e.message}", e)
+        }
+    }
+    
+    private fun preprocessAudio(audioBytes: ByteArray): FloatArray {
+        // TODO: Implement audio preprocessing pipeline
+        // 1. Decode audio format (MP3, WAV, etc.) to raw samples
+        // 2. Resample to 16kHz if needed
+        // 3. Convert to mono if stereo
+        // 4. Convert to float32 in range [-1, 1]
+        // 5. Validate audio length (max 30 seconds)
+        
+        // Placeholder implementation
+        return FloatArray(0)
     }
 
     fun generateResponse(): String = session.generateResponse()

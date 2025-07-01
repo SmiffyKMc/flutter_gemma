@@ -10,7 +10,9 @@ class MobileInferenceModel extends InferenceModel {
     this.supportedLoraRanks,
     // Добавляем поддержку изображений
     this.supportImage = false,
+    this.supportAudio = false,
     this.maxNumImages,
+    this.maxAudioLength,
   });
 
   final ModelType modelType;
@@ -22,7 +24,15 @@ class MobileInferenceModel extends InferenceModel {
   final List<int>? supportedLoraRanks;
   // Добавляем поля для изображений
   final bool supportImage;
+  final bool supportAudio;
   final int? maxNumImages;
+  final int? maxAudioLength;
+
+  @override
+  bool get supportsImage => supportImage;
+
+  @override
+  bool get supportsAudio => supportAudio;
 
   bool _isClosed = false;
   MobileInferenceModelSession? _session;
@@ -40,6 +50,7 @@ class MobileInferenceModel extends InferenceModel {
     String? loraPath,
     // Добавляем параметр для vision модальности
     bool? enableVisionModality,
+    bool? enableAudioModality,
   }) async {
     if (_isClosed) {
       throw Exception('Model is closed. Create a new instance to use it again');
@@ -65,11 +76,13 @@ class MobileInferenceModel extends InferenceModel {
         loraPath: resolvedLoraPath,
         // Включаем vision модальность если модель поддерживает изображения
         enableVisionModality: enableVisionModality ?? supportImage,
+        enableAudioModality: enableAudioModality ?? supportAudio,
       );
 
       final session = _session = MobileInferenceModelSession(
         modelType: modelType,
         supportImage: supportImage,
+        supportAudio: supportAudio,
         onClose: () {
           _session = null;
           _createCompleter = null;
@@ -96,6 +109,7 @@ class MobileInferenceModelSession extends InferenceModelSession {
   final VoidCallback onClose;
   // Добавляем поддержку изображений
   final bool supportImage;
+  final bool supportAudio;
   bool _isClosed = false;
 
   Completer<void>? _responseCompleter;
@@ -105,6 +119,7 @@ class MobileInferenceModelSession extends InferenceModelSession {
     required this.onClose,
     required this.modelType,
     this.supportImage = false,
+    this.supportAudio = false,
   });
 
   void _assertNotClosed() {
@@ -129,6 +144,9 @@ class MobileInferenceModelSession extends InferenceModelSession {
     if (message.hasImage && message.imageBytes != null && supportImage) {
       await _addImage(message.imageBytes!);
     }
+    if (message.hasAudio && message.audioBytes != null && supportAudio) {
+      await _addAudio(message.audioBytes!);
+    }
   }
 
   Future<void> _addImage(Uint8List imageBytes) async {
@@ -137,6 +155,14 @@ class MobileInferenceModelSession extends InferenceModelSession {
       throw Exception('This model does not support images');
     }
     await _platformService.addImage(imageBytes);
+  }
+
+  Future<void> _addAudio(Uint8List audioBytes) async {
+    _assertNotClosed();
+    if (!supportAudio) {
+      throw Exception('This model does not support audio');
+    }
+    await _platformService.addAudio(audioBytes);
   }
 
   @override
