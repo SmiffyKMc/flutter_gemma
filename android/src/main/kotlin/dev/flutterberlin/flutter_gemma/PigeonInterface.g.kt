@@ -61,18 +61,19 @@ enum class PreferredBackend(val raw: Int) {
     }
   }
 }
-private open class PigeonInterfacePigeonCodec : StandardMessageCodec() {
+
+private object PlatformServiceCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
       129.toByte() -> {
-        return (readValue(buffer) as Long?)?.let {
-          PreferredBackend.ofRaw(it.toInt())
+        return (readValue(buffer) as Int?)?.let {
+          PreferredBackend.ofRaw(it)
         }
       }
       else -> super.readValueOfType(type, buffer)
     }
   }
-  override fun writeValue(stream: ByteArrayOutputStream, value: Any?)   {
+  override fun writeValue(stream: ByteArrayOutputStream, value: Any?) {
     when (value) {
       is PreferredBackend -> {
         stream.write(129)
@@ -83,30 +84,29 @@ private open class PigeonInterfacePigeonCodec : StandardMessageCodec() {
   }
 }
 
-
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface PlatformService {
-  fun createModel(maxTokens: Long, modelPath: String, loraRanks: List<Long>?, preferredBackend: PreferredBackend?, maxNumImages: Long?, callback: (Result<Unit>) -> Unit)
+  fun createModel(maxTokens: Long, modelPath: String, loraRanks: List<Long>?, preferredBackend: PreferredBackend?, maxNumImages: Long?, supportAudio: Boolean?, maxAudioLength: Long?, callback: (Result<Unit>) -> Unit)
   fun closeModel(callback: (Result<Unit>) -> Unit)
-  fun createSession(temperature: Double, randomSeed: Long, topK: Long, topP: Double?, loraPath: String?, enableVisionModality: Boolean?, callback: (Result<Unit>) -> Unit)
+  fun createSession(temperature: Double, randomSeed: Long, topK: Long, topP: Double?, loraPath: String?, enableVisionModality: Boolean?, enableAudioModality: Boolean?, callback: (Result<Unit>) -> Unit)
   fun closeSession(callback: (Result<Unit>) -> Unit)
   fun sizeInTokens(prompt: String, callback: (Result<Long>) -> Unit)
   fun addQueryChunk(prompt: String, callback: (Result<Unit>) -> Unit)
   fun addImage(imageBytes: ByteArray, callback: (Result<Unit>) -> Unit)
+  fun addAudio(audioBytes: ByteArray, callback: (Result<Unit>) -> Unit)
   fun generateResponse(callback: (Result<String>) -> Unit)
   fun generateResponseAsync(callback: (Result<Unit>) -> Unit)
 
   companion object {
     /** The codec used by PlatformService. */
     val codec: MessageCodec<Any?> by lazy {
-      PigeonInterfacePigeonCodec()
+      PlatformServiceCodec
     }
     /** Sets up an instance of `PlatformService` to handle messages through the `binaryMessenger`. */
-    @JvmOverloads
-    fun setUp(binaryMessenger: BinaryMessenger, api: PlatformService?, messageChannelSuffix: String = "") {
-      val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    @Suppress("UNCHECKED_CAST")
+    fun setUp(binaryMessenger: BinaryMessenger, api: PlatformService?) {
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.createModel$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.createModel", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
@@ -115,7 +115,9 @@ interface PlatformService {
             val loraRanksArg = args[2] as List<Long>?
             val preferredBackendArg = args[3] as PreferredBackend?
             val maxNumImagesArg = args[4] as Long?
-            api.createModel(maxTokensArg, modelPathArg, loraRanksArg, preferredBackendArg, maxNumImagesArg) { result: Result<Unit> ->
+            val supportAudioArg = args[5] as Boolean?
+            val maxAudioLengthArg = args[6] as Long?
+            api.createModel(maxTokensArg, modelPathArg, loraRanksArg, preferredBackendArg, maxNumImagesArg, supportAudioArg, maxAudioLengthArg) { result: Result<Unit> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(wrapError(error))
@@ -129,10 +131,10 @@ interface PlatformService {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.closeModel$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.closeModel", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
-            api.closeModel{ result: Result<Unit> ->
+            api.closeModel() { result: Result<Unit> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(wrapError(error))
@@ -146,7 +148,7 @@ interface PlatformService {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.createSession$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.createSession", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
@@ -156,7 +158,8 @@ interface PlatformService {
             val topPArg = args[3] as Double?
             val loraPathArg = args[4] as String?
             val enableVisionModalityArg = args[5] as Boolean?
-            api.createSession(temperatureArg, randomSeedArg, topKArg, topPArg, loraPathArg, enableVisionModalityArg) { result: Result<Unit> ->
+            val enableAudioModalityArg = args[6] as Boolean?
+            api.createSession(temperatureArg, randomSeedArg, topKArg, topPArg, loraPathArg, enableVisionModalityArg, enableAudioModalityArg) { result: Result<Unit> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(wrapError(error))
@@ -170,10 +173,10 @@ interface PlatformService {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.closeSession$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.closeSession", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
-            api.closeSession{ result: Result<Unit> ->
+            api.closeSession() { result: Result<Unit> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(wrapError(error))
@@ -187,7 +190,7 @@ interface PlatformService {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.sizeInTokens$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.sizeInTokens", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
@@ -207,7 +210,7 @@ interface PlatformService {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.addQueryChunk$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.addQueryChunk", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
@@ -226,7 +229,7 @@ interface PlatformService {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.addImage$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.addImage", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
@@ -245,10 +248,29 @@ interface PlatformService {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.generateResponse$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.addAudio", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val audioBytesArg = args[0] as ByteArray
+            api.addAudio(audioBytesArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(wrapError(error))
+              } else {
+                reply.reply(wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.generateResponse", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
-            api.generateResponse{ result: Result<String> ->
+            api.generateResponse() { result: Result<String> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(wrapError(error))
@@ -263,10 +285,10 @@ interface PlatformService {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.generateResponseAsync$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_gemma.PlatformService.generateResponseAsync", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
-            api.generateResponseAsync{ result: Result<Unit> ->
+            api.generateResponseAsync() { result: Result<Unit> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(wrapError(error))

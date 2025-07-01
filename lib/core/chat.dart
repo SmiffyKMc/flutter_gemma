@@ -6,6 +6,7 @@ class InferenceChat {
   final int maxTokens;
   final int tokenBuffer;
   final bool supportImage;
+  final bool supportAudio;
   late InferenceModelSession session;
 
   final List<Message> _fullHistory = [];
@@ -17,6 +18,7 @@ class InferenceChat {
     required this.maxTokens,
     this.tokenBuffer = 2000,
     this.supportImage = false,
+    this.supportAudio = false,
   });
 
   List<Message> get fullHistory => List.unmodifiable(_fullHistory);
@@ -31,6 +33,11 @@ class InferenceChat {
 
     if (message.hasImage) {
       _currentTokens += 257;
+    }
+
+    if (message.hasAudio) {
+      final estimatedAudioTokens = _estimateAudioTokens(message.audioBytes!);
+      _currentTokens += estimatedAudioTokens;
     }
 
     if (_currentTokens >= (maxTokens - tokenBuffer)) {
@@ -89,6 +96,11 @@ class InferenceChat {
       if (removedMessage.hasImage) {
         _currentTokens -= 257;
       }
+
+      if (removedMessage.hasAudio) {
+        final estimatedAudioTokens = _estimateAudioTokens(removedMessage.audioBytes!);
+        _currentTokens -= estimatedAudioTokens;
+      }
     }
 
     await session.close();
@@ -107,7 +119,22 @@ class InferenceChat {
     session = await sessionCreator!();
   }
 
+  /// Estimates the number of tokens for audio data
+  /// In real implementation, this should use the actual USM encoder
+  int _estimateAudioTokens(List<int> audioBytes) {
+    // Rough estimation: assume 16kHz sample rate, 32-bit float
+    // audioBytes length / 4 (bytes per sample) / 16000 (samples per second) * 6.25 (tokens per second)
+    final estimatedSeconds = audioBytes.length / (4 * 16000);
+    return (estimatedSeconds * 6.25).ceil();
+  }
+
   bool get supportsImages => supportImage;
 
+  bool get supportsAudio => supportAudio;
+
   int get imageMessageCount => _fullHistory.where((msg) => msg.hasImage).length;
+
+  int get audioMessageCount => _fullHistory.where((msg) => msg.hasAudio).length;
+
+  int get multimodalMessageCount => _fullHistory.where((msg) => msg.isMultimodal).length;
 }

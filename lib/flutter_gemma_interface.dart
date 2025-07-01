@@ -37,13 +37,17 @@ abstract class FlutterGemmaPlugin extends PlatformInterface {
   /// [loraRanks] — optional supported LoRA ranks.
   /// [maxNumImages] — maximum number of images (for multimodal models).
   /// [supportImage] — whether the model supports images.
+  /// [supportAudio] — whether the model supports audio input.
+  /// [maxAudioLength] — maximum audio length in seconds.
   Future<InferenceModel> createModel({
     required ModelType modelType,
     int maxTokens = 1024,
     PreferredBackend? preferredBackend,
     List<int>? loraRanks,
-    int? maxNumImages, // Добавляем поддержку изображений
-    bool supportImage = false, // Добавляем флаг поддержки изображений
+    int? maxNumImages,
+    bool supportImage = false,
+    bool supportAudio = false,
+    int maxAudioLength = 30,
   });
 }
 
@@ -55,18 +59,24 @@ abstract class InferenceModel {
 
   int get maxTokens;
 
+  bool get supportsAudio;
+
+  bool get supportsImage;
+
   /// Creates a new [InferenceModelSession] for generation.
   ///
   /// [temperature], [randomSeed], [topK], [topP] — parameters for sampling.
   /// [loraPath] — optional path to LoRA model.
   /// [enableVisionModality] — enable vision modality for multimodal models.
+  /// [enableAudioModality] — enable audio modality for multimodal models.
   Future<InferenceModelSession> createSession({
     double temperature = .8,
     int randomSeed = 1,
     int topK = 1,
     double? topP,
     String? loraPath,
-    bool? enableVisionModality, // Добавляем поддержку vision модальности
+    bool? enableVisionModality,
+    bool? enableAudioModality,
   });
 
   /// Creates a chat interface wrapping [InferenceChat].
@@ -75,15 +85,18 @@ abstract class InferenceModel {
   /// [loraPath] — optional path to LoRA model.
   /// [tokenBuffer] — token buffer size for chat for not to exceed max tokens.
   /// [enableVisionModality] — enable vision modality for multimodal models.
+  /// [enableAudioModality] — enable audio modality for multimodal models.
   /// [supportImage] — whether the chat should support images.
+  /// [supportAudio] — whether the chat should support audio.
   Future<InferenceChat> createChat({
     double temperature = .8,
     int randomSeed = 1,
     int topK = 1,
-    double? topP, // Optional topP for chat too
+    double? topP,
     int tokenBuffer = 256,
     String? loraPath,
-    bool? supportImage, // Добавляем поддержку изображений в чате
+    bool? supportImage,
+    bool? supportAudio,
   }) async {
     chat = InferenceChat(
       sessionCreator: () => createSession(
@@ -93,10 +106,12 @@ abstract class InferenceModel {
         topP: topP,
         loraPath: loraPath,
         enableVisionModality: supportImage ?? false,
+        enableAudioModality: supportAudio ?? false,
       ),
       maxTokens: maxTokens,
       tokenBuffer: tokenBuffer,
-      supportImage: supportImage ?? false, // Передаем поддержку изображений
+      supportImage: supportImage ?? false,
+      supportAudio: supportAudio ?? false,
     );
     await chat!.initSession();
     return chat!;

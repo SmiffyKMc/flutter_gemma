@@ -8,7 +8,9 @@ struct InferenceModel {
     init(modelPath: String,
          maxTokens: Int,
          supportedLoraRanks: [Int]? = nil,
-         maxNumImages: Int = 0) throws {
+         maxNumImages: Int = 0,
+         supportAudio: Bool = false,
+         maxAudioLength: Int = 30) throws {
 
         let fileManager = FileManager.default
         guard let documentDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
@@ -30,6 +32,9 @@ struct InferenceModel {
             llmOptions.maxImages = maxNumImages
         }
 
+        // Note: Audio support would be configured here when MediaPipe supports it
+        // For now, we store the configuration for future use
+
         self.inference = try LlmInference(options: llmOptions)
     }
 
@@ -41,6 +46,7 @@ struct InferenceModel {
 
 final class InferenceSession {
     private let session: LlmInference.Session
+    private let supportsAudio: Bool
 
     init(inference: LlmInference,
          temperature: Float,
@@ -48,8 +54,11 @@ final class InferenceSession {
          topk: Int,
          topP: Double? = nil,
          loraPath: String? = nil,
-         enableVisionModality: Bool = false) throws {
+         enableVisionModality: Bool = false,
+         enableAudioModality: Bool = false) throws {
 
+        self.supportsAudio = enableAudioModality
+        
         let options = LlmInference.Session.Options()
         options.temperature = temperature
         options.randomSeed = randomSeed
@@ -64,6 +73,8 @@ final class InferenceSession {
         }
 
         options.enableVisionModality = enableVisionModality
+        // Note: Audio modality support would be added here when MediaPipe supports it
+        // options.enableAudioModality = enableAudioModality
 
         // Initialize session with proper error handling for Gemma 3n
         do {
@@ -101,15 +112,59 @@ final class InferenceSession {
         try session.addImage(image: image)
     }
 
+    func addAudio(audioData: Data) throws {
+        guard supportsAudio else {
+            throw NSError(domain: "InferenceSession", code: 1, userInfo: [NSLocalizedDescriptionKey: "Audio modality is not enabled for this session"])
+        }
+        
+        // TODO: Implement audio preprocessing and USM encoding
+        // This is a placeholder for the audio processing pipeline
+        
+        do {
+            // Step 1: Validate audio format and convert to 16kHz mono float32
+            let processedAudio = try preprocessAudio(audioData)
+            
+            // Step 2: Convert audio to USM tokens (placeholder)
+            // In actual implementation, this would use MediaPipe's USM encoder
+            // let audioTokens = try encodeAudioToTokens(processedAudio)
+            
+            // Step 3: Add audio tokens to session (placeholder)
+            // try session.addAudio(audioTokens) // This method doesn't exist yet in MediaPipe
+            
+            // For now, we'll throw an exception indicating this is not yet implemented
+            throw NSError(domain: "InferenceSession", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "Audio input is not yet implemented in MediaPipe Tasks. This requires MediaPipe to support audio input for LLM inference."
+            ])
+            
+        } catch {
+            throw NSError(domain: "InferenceSession", code: 3, userInfo: [
+                NSLocalizedDescriptionKey: "Failed to process audio input: \(error.localizedDescription)"
+            ])
+        }
+    }
+    
+    private func preprocessAudio(_ audioData: Data) throws -> [Float] {
+        // TODO: Implement audio preprocessing pipeline
+        // 1. Decode audio format (MP3, WAV, etc.) to raw samples
+        // 2. Resample to 16kHz if needed
+        // 3. Convert to mono if stereo
+        // 4. Convert to float32 in range [-1, 1]
+        // 5. Validate audio length (max 30 seconds)
+        
+        // Placeholder implementation
+        return []
+    }
+
     // Clone session (GPU models only)
     func clone() throws -> InferenceSession {
         let clonedSession = try session.clone()
-        return InferenceSession(wrapping: clonedSession)
+        return InferenceSession(wrapping: clonedSession, supportsAudio: supportsAudio)
     }
 
     // Private initializer for wrapping existing session (used by clone)
-    private init(wrapping session: LlmInference.Session) {
+    private init(wrapping session: LlmInference.Session, supportsAudio: Bool = false) {
         self.session = session
+        self.supportsAudio = supportsAudio
     }
 
     func generateResponse(prompt: String? = nil) throws -> String {

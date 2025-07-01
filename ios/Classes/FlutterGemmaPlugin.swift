@@ -24,6 +24,8 @@ class PlatformServiceImpl : NSObject, PlatformService, FlutterStreamHandler {
         loraRanks: [Int64]?,
         preferredBackend: PreferredBackend?,
         maxNumImages: Int64?,
+        supportAudio: Bool?,
+        maxAudioLength: Int64?,
         completion: @escaping (Result<Void, any Error>) -> Void
     ) {
         DispatchQueue.global(qos: .userInitiated).async {
@@ -32,7 +34,9 @@ class PlatformServiceImpl : NSObject, PlatformService, FlutterStreamHandler {
                     modelPath: modelPath,
                     maxTokens: Int(maxTokens),
                     supportedLoraRanks: loraRanks?.map(Int.init),
-                    maxNumImages: Int(maxNumImages ?? 0)
+                    maxNumImages: Int(maxNumImages ?? 0),
+                    supportAudio: supportAudio ?? false,
+                    maxAudioLength: Int(maxAudioLength ?? 30)
                 )
                 DispatchQueue.main.async {
                     completion(.success(()))
@@ -57,6 +61,7 @@ class PlatformServiceImpl : NSObject, PlatformService, FlutterStreamHandler {
         topP: Double?,
         loraPath: String?,
         enableVisionModality: Bool?,
+        enableAudioModality: Bool?,
         completion: @escaping (Result<Void, any Error>) -> Void
     ) {
         guard let inference = model?.inference else {
@@ -73,7 +78,8 @@ class PlatformServiceImpl : NSObject, PlatformService, FlutterStreamHandler {
                     topk: Int(topK),
                     topP: topP,
                     loraPath: loraPath,
-                    enableVisionModality: enableVisionModality ?? false
+                    enableVisionModality: enableVisionModality ?? false,
+                    enableAudioModality: enableAudioModality ?? false
                 )
                 DispatchQueue.main.async {
                     self.session = newSession
@@ -124,7 +130,7 @@ class PlatformServiceImpl : NSObject, PlatformService, FlutterStreamHandler {
         }
     }
 
-    // Добавляем метод для добавления изображения
+    // Add method for adding images
     func addImage(imageBytes: FlutterStandardTypedData, completion: @escaping (Result<Void, any Error>) -> Void) {
         guard let session = session else {
             completion(.failure(PigeonError(code: "Session not created", message: nil, details: nil)))
@@ -149,6 +155,27 @@ class PlatformServiceImpl : NSObject, PlatformService, FlutterStreamHandler {
 
                 try session.addImage(image: cgImage)
 
+                DispatchQueue.main.async {
+                    completion(.success(()))
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
+            }
+        }
+    }
+
+    // Add method for adding audio
+    func addAudio(audioBytes: FlutterStandardTypedData, completion: @escaping (Result<Void, any Error>) -> Void) {
+        guard let session = session else {
+            completion(.failure(PigeonError(code: "Session not created", message: nil, details: nil)))
+            return
+        }
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                try session.addAudio(audioData: audioBytes.data)
                 DispatchQueue.main.async {
                     completion(.success(()))
                 }

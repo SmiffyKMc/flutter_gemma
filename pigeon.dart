@@ -29,6 +29,9 @@ abstract class PlatformService {
     PreferredBackend? preferredBackend,
     // Добавляем поддержку изображений
     int? maxNumImages,
+    // Support for audio
+    bool? supportAudio,
+    int? maxAudioLength,
   });
 
   @async
@@ -43,6 +46,8 @@ abstract class PlatformService {
     String? loraPath,
     // Добавляем опцию для включения vision модальности
     bool? enableVisionModality,
+    // Enable audio modality
+    bool? enableAudioModality,
   });
 
   @async
@@ -57,6 +62,10 @@ abstract class PlatformService {
   // Добавляем метод для добавления изображения
   @async
   void addImage(Uint8List imageBytes);
+
+  // Add audio method
+  @async
+  void addAudio(Uint8List audioBytes);
 
   @async
   String generateResponse();
